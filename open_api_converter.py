@@ -32,15 +32,27 @@ def info_to_html(info):
     - contact
     - version
 
-    :param info: <Object>
-    :return: <html>
     """
-    info_html = "<table>"
-    info_html += f'<tr>{kv_row("Title", info["title"])}</tr>'
-    info_html += f'<tr>{kv_row("Version", info["version"])}</tr>'
-    info_html += f'<tr>{kv_row("Description", info["description"])}</tr>'
-    info_html += "</table>"
+    info_html = f"""
+        <table>
+        <tr>{kv_row("Title", info["title"])}</tr>
+        <tr>{kv_row("Version", info["version"])}</tr>
+        <tr>{kv_row("Description", info["description"])}</tr>
+        </table>
+    """
     return info_html
+
+
+def tags_to_html(tags):
+    """Return the tags array as html
+    """
+    tags_html = "<table><tr><th colspan='2'>Tags</th></tr>"
+    for i in tags:
+        name = i["name"]
+        description = i["description"]
+        tags_html += f"<tr><td>{name}</td><td>{description}</td></tr>"
+    tags_html += "</table>"
+    return tags_html
 
 
 def method_line(method, path):

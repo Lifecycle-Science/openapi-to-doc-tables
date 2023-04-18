@@ -1,0 +1,1526 @@
+{
+  "openapi": "3.0.2",
+  "info": {
+    "title": "ActionHub.ai API",
+    "description": "\nThe ActionHub API provides developers with a low-latency, high-throughput interface to \nActionHub's real-time action recommendations and growth segmentation. \nThe ActionHub API can serve as a centralized source of customer action recommendations that, \nwhen integrated with systems in your existing MarTech stack, can provide the basis \nfor high-value message orchestration.\n\n:::info \n\nGet started for free with the ActionHub API by visiting our \n[API Key request form](https://actionhub.retool.com/embedded/public/23338d36-08c8-40c2-9b6d-4c6c47894da7). \nOnce you have your API Key, visit our [getting started page](/docs/getting-started) for a step-by-step guide to start \ngenerating recommendations.\n\n:::\n\nWe'd love to hear your feedback and get your input on how to improve. \nPlease visit the [ActionHub GitHub discussion forums](https://github.com/Lifecycle-Science/actionhub-docs/discussions)\n and join (or start) the conversation. \n\n",
+    "termsOfService": "https://actionhub.ai/terms/",
+    "contact": { "name": "ActionHub Support", "email": "support@actionhub.ai" },
+    "version": "0.0.2"
+  },
+  "servers": [
+    { "url": "https://api.actionhub.ai", "description": "Staging environment" }
+  ],
+  "paths": {
+    "/events": {
+      "post": {
+        "tags": ["Event Logging"],
+        "summary": "Post Events",
+        "description": "Add events to the event store. When `process_user_actions=true` new events will trigger updates to user action recommendations and label weights.",
+        "operationId": "post_events_events_post",
+        "parameters": [
+          {
+            "description": "- `true` (default) : Process user updates in background, very fast response (ack) - `false` : Process user updates and produce new action recommendations immediately, slightly longer response time, guaranteed user update ",
+            "required": false,
+            "schema": {
+              "title": "Queue Updates",
+              "type": "boolean",
+              "description": "- `true` (default) : Process user updates in background, very fast response (ack) - `false` : Process user updates and produce new action recommendations immediately, slightly longer response time, guaranteed user update ",
+              "default": false
+            },
+            "name": "queue_updates",
+            "in": "query"
+          },
+          {
+            "description": "- `true` (default) : Process updated action recommendations for event users. Use this option for real-time event logging and action feedback - `false` : Do not process updated action recommendations for event users. Use this option for bulk loading or back-filling a large number of events ",
+            "required": false,
+            "schema": {
+              "title": "Process User Actions",
+              "type": "boolean",
+              "description": "- `true` (default) : Process updated action recommendations for event users. Use this option for real-time event logging and action feedback - `false` : Do not process updated action recommendations for event users. Use this option for bulk loading or back-filling a large number of events ",
+              "default": true
+            },
+            "name": "process_user_actions",
+            "in": "query"
+          },
+          {
+            "required": true,
+            "schema": { "title": "Program-Id", "type": "string" },
+            "name": "program-id",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/EventList" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SuccessMessage" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        },
+        "security": [{ "APIKeyHeader": [] }]
+      }
+    },
+    "/users/{user_id}/actions": {
+      "get": {
+        "tags": ["User Engagement"],
+        "summary": "Get User Actions",
+        "description": "Get a list recommended actions for a given user. _Growth actions_ are weighted by expected impact. Higher weights means greater expected impact. _Base weights_ reflect the influence of the action on the growth calculations based on past engagement.",
+        "operationId": "get_user_actions_users__user_id__actions_get",
+        "parameters": [
+          {
+            "required": true,
+            "schema": { "title": "User Id", "type": "string" },
+            "name": "user_id",
+            "in": "path"
+          },
+          {
+            "description": "Number of actions to be returned in result",
+            "required": false,
+            "schema": {
+              "title": "Limit",
+              "maximum": 20.0,
+              "type": "integer",
+              "description": "Number of actions to be returned in result",
+              "default": 10
+            },
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "description": "Include actions already taken? Default is true (1)",
+            "required": false,
+            "schema": {
+              "title": "Allow Repeats",
+              "type": "boolean",
+              "description": "Include actions already taken? Default is true (1)",
+              "default": true
+            },
+            "name": "allow_repeats",
+            "in": "query"
+          },
+          {
+            "required": true,
+            "schema": { "title": "Program-Id", "type": "string" },
+            "name": "program-id",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UserNextActionList" }
+              }
+            }
+          },
+          "404": {
+            "description": "User history not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorMessage" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        },
+        "security": [{ "APIKeyHeader": [] }]
+      }
+    },
+    "/users/{user_id}/labels": {
+      "get": {
+        "tags": ["User Engagement"],
+        "summary": "Get User Labels",
+        "description": "Get a collection of labels and their weights used in recommendations for the given user. The higher weight values indicate higher user engagement. Results are order by highest-lowest weight values.",
+        "operationId": "get_user_labels_users__user_id__labels_get",
+        "parameters": [
+          {
+            "required": true,
+            "schema": { "title": "User Id", "type": "string" },
+            "name": "user_id",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "schema": { "title": "Program-Id", "type": "string" },
+            "name": "program-id",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UserLabelDict" }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorMessage" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        },
+        "security": [{ "APIKeyHeader": [] }]
+      }
+    },
+    "/users/{user_id}/events": {
+      "get": {
+        "tags": ["User Engagement"],
+        "summary": "Get User Events Log",
+        "description": "Get the raw action history log for the given user.",
+        "operationId": "get_user_events_log_users__user_id__events_get",
+        "parameters": [
+          {
+            "required": true,
+            "schema": { "title": "User Id", "type": "string" },
+            "name": "user_id",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "schema": { "title": "Program-Id", "type": "string" },
+            "name": "program-id",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRawHistoryActionList"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorMessage" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        },
+        "security": [{ "APIKeyHeader": [] }]
+      }
+    },
+    "/users/{user_id}/rebase": {
+      "put": {
+        "tags": ["User Engagement"],
+        "summary": "Rebase User",
+        "description": "Recalculate/regenerate the user graphs, action weights, and label weights for the specified user. This is operation is synchronous and should only be used when troubleshooting individual users. (User graphs are automatically regenerated when (a) new events are logged, and (b) when the base graphs are recalculated.",
+        "operationId": "rebase_user_users__user_id__rebase_put",
+        "parameters": [
+          {
+            "required": true,
+            "schema": { "title": "User Id", "type": "string" },
+            "name": "user_id",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "schema": { "title": "Program-Id", "type": "string" },
+            "name": "program-id",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SuccessMessage" }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorMessage" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        },
+        "security": [{ "APIKeyHeader": [] }]
+      }
+    },
+    "/random/user_id": {
+      "get": {
+        "tags": ["User Engagement"],
+        "summary": "Get Random User",
+        "description": "Retrieve a random user from the event store. This method should be used for configuration QA purposes only. (i.e. select a random user and then evaluate actions against histories and label weights to verify proper set up.)",
+        "operationId": "get_random_user_random_user_id_get",
+        "parameters": [
+          {
+            "required": true,
+            "schema": { "title": "Program-Id", "type": "string" },
+            "name": "program-id",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Random User Random User Id Get",
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        },
+        "security": [{ "APIKeyHeader": [] }]
+      }
+    },
+    "/assets": {
+      "get": {
+        "tags": ["Asset Administration"],
+        "summary": "Get Assets",
+        "description": "Retrieve the assets used in a given program",
+        "operationId": "get_assets_assets_get",
+        "parameters": [
+          {
+            "description": "Term will be searched for in any field",
+            "required": false,
+            "schema": {
+              "title": "Search",
+              "type": "string",
+              "description": "Term will be searched for in any field",
+              "default": ""
+            },
+            "name": "search",
+            "in": "query"
+          },
+          {
+            "required": false,
+            "schema": {
+              "title": "Page",
+              "minimum": 1.0,
+              "type": "integer",
+              "default": 1
+            },
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "required": false,
+            "schema": {
+              "title": "Size",
+              "maximum": 100.0,
+              "minimum": 1.0,
+              "type": "integer",
+              "default": 50
+            },
+            "name": "size",
+            "in": "query"
+          },
+          {
+            "required": true,
+            "schema": { "title": "Program-Id", "type": "string" },
+            "name": "program-id",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Page_Asset_" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        },
+        "security": [{ "APIKeyHeader": [] }]
+      },
+      "post": {
+        "tags": ["Asset Administration"],
+        "summary": "Post Assets",
+        "description": "For each of the assets in the list of provided assets, upsert function will either add new asset to program, or update existing asset with the same asset_id",
+        "operationId": "post_assets_assets_post",
+        "parameters": [
+          {
+            "required": true,
+            "schema": { "title": "Program-Id", "type": "string" },
+            "name": "program-id",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AssetList" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SuccessMessage" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        },
+        "security": [{ "APIKeyHeader": [] }]
+      }
+    },
+    "/labels": {
+      "get": {
+        "tags": ["Label Administration"],
+        "summary": "Get Labels",
+        "description": "Retrieve the assets used in a given program",
+        "operationId": "get_labels_labels_get",
+        "parameters": [
+          {
+            "description": "Term will be searched for in any field",
+            "required": false,
+            "schema": {
+              "title": "Search",
+              "type": "string",
+              "description": "Term will be searched for in any field",
+              "default": ""
+            },
+            "name": "search",
+            "in": "query"
+          },
+          {
+            "required": false,
+            "schema": {
+              "title": "Page",
+              "minimum": 1.0,
+              "type": "integer",
+              "default": 1
+            },
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "required": false,
+            "schema": {
+              "title": "Size",
+              "maximum": 100.0,
+              "minimum": 1.0,
+              "type": "integer",
+              "default": 50
+            },
+            "name": "size",
+            "in": "query"
+          },
+          {
+            "required": true,
+            "schema": { "title": "Program-Id", "type": "string" },
+            "name": "program-id",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Page_Label_" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        },
+        "security": [{ "APIKeyHeader": [] }]
+      },
+      "put": {
+        "tags": ["Label Administration"],
+        "summary": "Put Labels",
+        "description": "Upsert function will either add new asset to program, or update existing asset with the same asset_id",
+        "operationId": "put_labels_labels_put",
+        "parameters": [
+          {
+            "required": true,
+            "schema": { "title": "Program-Id", "type": "string" },
+            "name": "program-id",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/LabelList" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SuccessMessage" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        },
+        "security": [{ "APIKeyHeader": [] }]
+      }
+    },
+    "/programs": {
+      "get": {
+        "tags": ["Program Configuration"],
+        "summary": "Get All Programs",
+        "description": "Get a list of programs available to the supplied API key.",
+        "operationId": "get_all_programs_programs_get",
+        "parameters": [
+          {
+            "required": false,
+            "schema": { "title": "Program-Id", "type": "string" },
+            "name": "program-id",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ProgramList" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        },
+        "security": [{ "APIKeyHeader": [] }]
+      },
+      "post": {
+        "tags": ["System Administration"],
+        "summary": "Create Program",
+        "operationId": "create_program_programs_post",
+        "parameters": [
+          {
+            "required": false,
+            "schema": { "title": "Program-Id", "type": "string" },
+            "name": "program-id",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/NewProgram" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/NewProgramResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        },
+        "security": [{ "APIKeyHeader": [] }]
+      }
+    },
+    "/program": {
+      "get": {
+        "tags": ["Program Configuration"],
+        "summary": "Get Program",
+        "description": "Get the program configuration settings used in processing and reporting events and actions.",
+        "operationId": "get_program_program_get",
+        "parameters": [
+          {
+            "required": true,
+            "schema": { "title": "Program-Id", "type": "string" },
+            "name": "program-id",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Program" }
+              }
+            }
+          },
+          "404": {
+            "description": "User history not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorMessage" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        },
+        "security": [{ "APIKeyHeader": [] }]
+      },
+      "put": {
+        "tags": ["Program Configuration"],
+        "summary": "Put Program",
+        "description": "Update the program configuration settings used in processing and reporting events and actions.",
+        "operationId": "put_program_program_put",
+        "parameters": [
+          {
+            "required": true,
+            "schema": { "title": "Program-Id", "type": "string" },
+            "name": "program-id",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Program" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SuccessMessage" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        },
+        "security": [{ "APIKeyHeader": [] }]
+      }
+    },
+    "/program/rebase": {
+      "put": {
+        "tags": ["Program Configuration"],
+        "summary": "Rebase Models",
+        "description": "Re-calculate the base/global models used in action recommendations. In most cases, this should be done no more than once per 24 hours when (a) new products/actions/services are added to the global event store, or (b) program configuration changes have been posted and are ready for publishing. Individual user data is not impacted by this process.",
+        "operationId": "rebase_models_program_rebase_put",
+        "parameters": [
+          {
+            "required": true,
+            "schema": { "title": "Program-Id", "type": "string" },
+            "name": "program-id",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SuccessMessage" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        },
+        "security": [{ "APIKeyHeader": [] }]
+      }
+    },
+    "/program/status": {
+      "get": {
+        "tags": ["Program Configuration"],
+        "summary": "Get Program Status",
+        "description": "Get the current status of a program. Status events logged currently include rebase activity.",
+        "operationId": "get_program_status_program_status_get",
+        "parameters": [
+          {
+            "required": true,
+            "schema": { "title": "Program-Id", "type": "string" },
+            "name": "program-id",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ProgramStatus" }
+              }
+            }
+          },
+          "404": {
+            "description": "User history not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorMessage" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        },
+        "security": [{ "APIKeyHeader": [] }]
+      }
+    },
+    "/segment": {
+      "get": {
+        "tags": ["Segmentation"],
+        "summary": "Get Segment",
+        "description": "Get plaintext list of user_ids matching segment criteria. See product documentations for full description of segment criteria.",
+        "operationId": "get_segment_segment_get",
+        "parameters": [
+          {
+            "description": "Comma delimited list of asset ids to use as the bases for the segment. Users with growth value recommendations for the supplied asset ids will be included in the segment. Either asset_ids  or labels must be provided for segments. If asset_ids are provided labels are ignored.",
+            "required": false,
+            "schema": {
+              "title": "Asset Ids",
+              "type": "string",
+              "description": "Comma delimited list of asset ids to use as the bases for the segment. Users with growth value recommendations for the supplied asset ids will be included in the segment. Either asset_ids  or labels must be provided for segments. If asset_ids are provided labels are ignored.",
+              "default": ""
+            },
+            "name": "asset_ids",
+            "in": "query"
+          },
+          {
+            "description": "Comma delimited list of labels to use as the bases for the segment. Users with growth value recommendations for the supplied labels ids will be included in the segment. Either asset_ids or labels must be provided for segments. If asset_ids are provided labels are ignored.",
+            "required": false,
+            "schema": {
+              "title": "Labels",
+              "type": "string",
+              "description": "Comma delimited list of labels to use as the bases for the segment. Users with growth value recommendations for the supplied labels ids will be included in the segment. Either asset_ids or labels must be provided for segments. If asset_ids are provided labels are ignored.",
+              "default": ""
+            },
+            "name": "labels",
+            "in": "query"
+          },
+          {
+            "description": "Optional comma delimited list of recommended action types (same list as event types) to use as a recommendations FILTER for the asset list provided. Only asset recommendations of the provided action types will be included in the segment.",
+            "required": false,
+            "schema": {
+              "title": "Action Types",
+              "type": "string",
+              "description": "Optional comma delimited list of recommended action types (same list as event types) to use as a recommendations FILTER for the asset list provided. Only asset recommendations of the provided action types will be included in the segment.",
+              "default": ""
+            },
+            "name": "action_types",
+            "in": "query"
+          },
+          {
+            "description": "Indicates if membership in the segment requires match for all assets/labels or any (default).",
+            "required": false,
+            "schema": {
+              "allOf": [{ "$ref": "#/components/schemas/SegmentMatchTypes" }],
+              "description": "Indicates if membership in the segment requires match for all assets/labels or any (default).",
+              "default": "any"
+            },
+            "name": "match_type",
+            "in": "query"
+          },
+          {
+            "description": "Indicates if the segment should consider all growth values (default), only values matching a user history (base), or only values that are net new for the user (discovery).See product documentation for more details about segment types",
+            "required": false,
+            "schema": {
+              "allOf": [{ "$ref": "#/components/schemas/SegmentTypes" }],
+              "description": "Indicates if the segment should consider all growth values (default), only values matching a user history (base), or only values that are net new for the user (discovery).See product documentation for more details about segment types",
+              "default": "growth"
+            },
+            "name": "segment_type",
+            "in": "query"
+          },
+          {
+            "description": "Minimum weight allowable for asset and label recommendations to qualify for the segment.",
+            "required": false,
+            "schema": {
+              "title": "Min Weight",
+              "type": "number",
+              "description": "Minimum weight allowable for asset and label recommendations to qualify for the segment.",
+              "default": 0.5
+            },
+            "name": "min_weight",
+            "in": "query"
+          },
+          {
+            "description": "Recalculate the segment and do not use the cache",
+            "required": false,
+            "schema": {
+              "title": "Force Refresh",
+              "type": "boolean",
+              "description": "Recalculate the segment and do not use the cache",
+              "default": false
+            },
+            "name": "force_refresh",
+            "in": "query"
+          },
+          {
+            "required": true,
+            "schema": { "title": "Program-Id", "type": "string" },
+            "name": "program-id",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "text/plain": { "schema": { "type": "string" } } }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        },
+        "security": [{ "APIKeyHeader": [] }]
+      }
+    },
+    "/segments": {
+      "get": {
+        "tags": ["Segmentation"],
+        "summary": "Get Segments",
+        "description": "Get list of user counts for single asset-based or label-based segments.",
+        "operationId": "get_segments_segments_get",
+        "parameters": [
+          {
+            "description": "Indicates if the segment should consider all growth values (default), only values matching a user history (base), or only values that are net new for the user (discovery). See product documentation for more details about segment types",
+            "required": false,
+            "schema": {
+              "allOf": [{ "$ref": "#/components/schemas/SegmentTypes" }],
+              "description": "Indicates if the segment should consider all growth values (default), only values matching a user history (base), or only values that are net new for the user (discovery). See product documentation for more details about segment types",
+              "default": "growth"
+            },
+            "name": "segment_type",
+            "in": "query"
+          },
+          {
+            "description": "Specifies whether the segments should be broken out by asset or label.",
+            "required": false,
+            "schema": {
+              "allOf": [{ "$ref": "#/components/schemas/SegmentBasis" }],
+              "description": "Specifies whether the segments should be broken out by asset or label.",
+              "default": "labels"
+            },
+            "name": "segment_basis",
+            "in": "query"
+          },
+          {
+            "description": "Minimum weight allowable for asset and label recommendations to qualify for the segment.",
+            "required": false,
+            "schema": {
+              "title": "Min Weight",
+              "type": "number",
+              "description": "Minimum weight allowable for asset and label recommendations to qualify for the segment.",
+              "default": 0.5
+            },
+            "name": "min_weight",
+            "in": "query"
+          },
+          {
+            "description": "Recalculate the segment counts and do not use the cache",
+            "required": false,
+            "schema": {
+              "title": "Force Refresh",
+              "type": "boolean",
+              "description": "Recalculate the segment counts and do not use the cache",
+              "default": false
+            },
+            "name": "force_refresh",
+            "in": "query"
+          },
+          {
+            "required": false,
+            "schema": {
+              "title": "Page",
+              "minimum": 1.0,
+              "type": "integer",
+              "default": 1
+            },
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "required": false,
+            "schema": {
+              "title": "Size",
+              "maximum": 100.0,
+              "minimum": 1.0,
+              "type": "integer",
+              "default": 50
+            },
+            "name": "size",
+            "in": "query"
+          },
+          {
+            "required": true,
+            "schema": { "title": "Program-Id", "type": "string" },
+            "name": "program-id",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Page_SegmentCount_" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        },
+        "security": [{ "APIKeyHeader": [] }]
+      }
+    },
+    "/program/reset": {
+      "put": {
+        "tags": ["System Administration"],
+        "summary": "Reset Models",
+        "description": "Use this method to clear out the in-memery versions of the processing data sets including program labels, assets, event_types and the event graph.",
+        "operationId": "reset_models_program_reset_put",
+        "parameters": [
+          {
+            "required": true,
+            "schema": { "title": "Program-Id", "type": "string" },
+            "name": "program-id",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SuccessMessage" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        },
+        "security": [{ "APIKeyHeader": [] }]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Asset": {
+        "title": "Asset",
+        "required": ["asset_id"],
+        "type": "object",
+        "properties": {
+          "asset_id": {
+            "title": "Asset Id",
+            "maxLength": 64,
+            "type": "string"
+          },
+          "asset_name": {
+            "title": "Asset Name",
+            "maxLength": 124,
+            "type": "string"
+          },
+          "labels": { "title": "Labels", "type": "array", "items": {} }
+        }
+      },
+      "AssetList": {
+        "title": "AssetList",
+        "required": ["assets"],
+        "type": "object",
+        "properties": {
+          "assets": {
+            "title": "Assets",
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Asset" }
+          }
+        }
+      },
+      "ErrorMessage": {
+        "title": "ErrorMessage",
+        "required": ["detail"],
+        "type": "object",
+        "properties": { "detail": { "title": "Detail", "type": "string" } }
+      },
+      "Event": {
+        "title": "Event",
+        "required": [
+          "user_id",
+          "event_timestamp",
+          "event_type",
+          "asset_id",
+          "labels"
+        ],
+        "type": "object",
+        "properties": {
+          "user_id": { "title": "User Id", "type": "string" },
+          "event_timestamp": {
+            "title": "Event Timestamp",
+            "type": "string",
+            "description": "Time the event occurred in ISO 8601 format",
+            "format": "date-time"
+          },
+          "event_type": { "title": "Event Type", "type": "string" },
+          "asset_id": { "title": "Asset Id", "type": "string" },
+          "labels": {
+            "title": "Labels",
+            "type": "array",
+            "items": {},
+            "description": "Array of labels associated with instance of the event. These should not be used as asset labels which should be managed separately."
+          }
+        }
+      },
+      "EventList": {
+        "title": "EventList",
+        "required": ["events"],
+        "type": "object",
+        "properties": {
+          "events": {
+            "title": "Events",
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Event" },
+            "description": "Array of events, from minimum of 1 event to maximum 1000 events"
+          }
+        }
+      },
+      "HTTPValidationError": {
+        "title": "HTTPValidationError",
+        "type": "object",
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ValidationError" }
+          }
+        }
+      },
+      "Label": {
+        "title": "Label",
+        "required": ["label", "weight"],
+        "type": "object",
+        "properties": {
+          "label": { "title": "Label", "maxLength": 64, "type": "string" },
+          "weight": {
+            "title": "Weight",
+            "type": "number",
+            "description": "The strength of the action recommendation for the given user. Higher values mean stronger recommendation. "
+          }
+        }
+      },
+      "LabelList": {
+        "title": "LabelList",
+        "required": ["labels"],
+        "type": "object",
+        "properties": {
+          "labels": {
+            "title": "Labels",
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Label" }
+          }
+        }
+      },
+      "NewProgram": {
+        "title": "NewProgram",
+        "required": ["program_name"],
+        "type": "object",
+        "properties": {
+          "program_id": { "title": "Program Id", "type": "string" },
+          "program_name": { "title": "Program Name", "type": "string" },
+          "high_engagement_threshold": {
+            "title": "High Engagement Threshold",
+            "type": "integer",
+            "description": "This value is the number of actions establishing a user as 'highly engaged' (your best customers) for the purposes of inclusion in the engagement model."
+          },
+          "event_relevance_decay": {
+            "title": "Event Relevance Decay",
+            "type": "integer",
+            "description": "This value is the number of days for events to lose half their weight (also called event half-life), implemented as a decay curve over time. This value is used to account for recency relevance so newer actions can carry extra weight in calculations.\n            "
+          },
+          "action_weight_floor": {
+            "title": "Action Weight Floor",
+            "type": "number",
+            "description": "This value is the minimum user action recommendation weight required for the action to be included in the final recommendations. Higher numbers bring higher confidence in the recommendations but also limit the number of recommendations provided."
+          },
+          "description": { "title": "Description", "type": "string" }
+        }
+      },
+      "NewProgramResponse": {
+        "title": "NewProgramResponse",
+        "required": ["api_key", "program_id"],
+        "type": "object",
+        "properties": {
+          "api_key": { "title": "Api Key", "type": "string" },
+          "program_id": { "title": "Program Id", "type": "string" }
+        }
+      },
+      "Page_Asset_": {
+        "title": "Page[Asset]",
+        "required": ["items", "total", "page", "size"],
+        "type": "object",
+        "properties": {
+          "items": {
+            "title": "Items",
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Asset" }
+          },
+          "total": { "title": "Total", "minimum": 0.0, "type": "integer" },
+          "page": { "title": "Page", "minimum": 1.0, "type": "integer" },
+          "size": { "title": "Size", "minimum": 1.0, "type": "integer" }
+        }
+      },
+      "Page_Label_": {
+        "title": "Page[Label]",
+        "required": ["items", "total", "page", "size"],
+        "type": "object",
+        "properties": {
+          "items": {
+            "title": "Items",
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Label" }
+          },
+          "total": { "title": "Total", "minimum": 0.0, "type": "integer" },
+          "page": { "title": "Page", "minimum": 1.0, "type": "integer" },
+          "size": { "title": "Size", "minimum": 1.0, "type": "integer" }
+        }
+      },
+      "Page_SegmentCount_": {
+        "title": "Page[SegmentCount]",
+        "required": ["items", "total", "page", "size"],
+        "type": "object",
+        "properties": {
+          "items": {
+            "title": "Items",
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/SegmentCount" }
+          },
+          "total": { "title": "Total", "minimum": 0.0, "type": "integer" },
+          "page": { "title": "Page", "minimum": 1.0, "type": "integer" },
+          "size": { "title": "Size", "minimum": 1.0, "type": "integer" }
+        }
+      },
+      "Program": {
+        "title": "Program",
+        "required": ["program_id", "program_name"],
+        "type": "object",
+        "properties": {
+          "program_id": { "title": "Program Id", "type": "string" },
+          "program_name": { "title": "Program Name", "type": "string" },
+          "high_engagement_threshold": {
+            "title": "High Engagement Threshold",
+            "type": "integer",
+            "description": "This value is the number of actions establishing a user as 'highly engaged' (your best customers) for the purposes of inclusion in the engagement model."
+          },
+          "event_relevance_decay": {
+            "title": "Event Relevance Decay",
+            "type": "integer",
+            "description": "This value is the number of days for events to lose half their weight (also called event half-life), implemented as a decay curve over time. This value is used to account for recency relevance so newer actions can carry extra weight in calculations.\n            "
+          },
+          "action_weight_floor": {
+            "title": "Action Weight Floor",
+            "type": "number",
+            "description": "This value is the minimum user action recommendation weight required for the action to be included in the final recommendations. Higher numbers bring higher confidence in the recommendations but also limit the number of recommendations provided."
+          },
+          "description": { "title": "Description", "type": "string" }
+        }
+      },
+      "ProgramList": {
+        "title": "ProgramList",
+        "required": ["programs"],
+        "type": "object",
+        "properties": {
+          "programs": {
+            "title": "Programs",
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Program" }
+          }
+        }
+      },
+      "ProgramStatus": {
+        "title": "ProgramStatus",
+        "required": ["program_id", "status_id", "message", "ts_logged"],
+        "type": "object",
+        "properties": {
+          "program_id": { "title": "Program Id", "type": "string" },
+          "status_id": { "title": "Status Id", "type": "string" },
+          "message": { "title": "Message", "type": "string" },
+          "ts_logged": {
+            "title": "Ts Logged",
+            "type": "string",
+            "description": "Time the status was logged",
+            "format": "date-time"
+          }
+        }
+      },
+      "SegmentBasis": {
+        "title": "SegmentBasis",
+        "enum": ["assets", "labels"],
+        "type": "string",
+        "description": "An enumeration."
+      },
+      "SegmentCount": {
+        "title": "SegmentCount",
+        "required": [
+          "segment_type",
+          "segment_basis",
+          "segment_basis_id",
+          "action_type",
+          "name",
+          "user_count",
+          "strength",
+          "min_weight"
+        ],
+        "type": "object",
+        "properties": {
+          "segment_type": {
+            "title": "Segment Type",
+            "type": "string",
+            "description": "Either `growth` (actions to drive overall engagement), `discovery` (actions for exploration), or `base` (actions for repeat behaviors)."
+          },
+          "segment_basis": {
+            "title": "Segment Basis",
+            "type": "string",
+            "description": "Ether `label` or `asset`"
+          },
+          "segment_basis_id": {
+            "title": "Segment Basis Id",
+            "type": "string",
+            "description": "Ether the `label` or `asset` id"
+          },
+          "action_type": {
+            "title": "Action Type",
+            "type": "string",
+            "description": "Recommended event_type"
+          },
+          "name": { "title": "Name", "type": "string" },
+          "user_count": {
+            "title": "User Count",
+            "type": "integer",
+            "description": "The number of users in the segment"
+          },
+          "strength": {
+            "title": "Strength",
+            "type": "number",
+            "description": "The average of the user weights in the segment"
+          },
+          "min_weight": {
+            "title": "Min Weight",
+            "type": "number",
+            "description": "The cutoff weight for including in the segment"
+          }
+        }
+      },
+      "SegmentMatchTypes": {
+        "title": "SegmentMatchTypes",
+        "enum": ["any", "all"],
+        "type": "string",
+        "description": "An enumeration."
+      },
+      "SegmentTypes": {
+        "title": "SegmentTypes",
+        "enum": ["base", "discovery", "growth"],
+        "type": "string",
+        "description": "An enumeration."
+      },
+      "SuccessMessage": {
+        "title": "SuccessMessage",
+        "required": ["result"],
+        "type": "object",
+        "properties": { "result": { "title": "Result", "type": "string" } }
+      },
+      "UserLabelDict": {
+        "title": "UserLabelDict",
+        "required": ["labels"],
+        "type": "object",
+        "properties": {
+          "labels": {
+            "title": "Labels",
+            "type": "object",
+            "description": "An array of key-value pairs containing `label`:`weight`"
+          }
+        }
+      },
+      "UserNextAction": {
+        "title": "UserNextAction",
+        "required": [
+          "event_type",
+          "asset_id",
+          "asset_name",
+          "growth_weight",
+          "base_weight"
+        ],
+        "type": "object",
+        "properties": {
+          "event_type": {
+            "title": "Event Type",
+            "type": "string",
+            "description": "The behavior recommended in the action"
+          },
+          "asset_id": { "title": "Asset Id", "type": "string" },
+          "asset_name": { "title": "Asset Name", "type": "string" },
+          "growth_weight": {
+            "title": "Growth Weight",
+            "type": "number",
+            "description": "The strength of the action recommendation for the given user. Higher values mean stronger recommendation."
+          },
+          "base_weight": {
+            "title": "Base Weight",
+            "type": "number",
+            "description": "The historical weight of the action for the given user, accounting for recency and frequency. Higher values mean greater impact on the recommendations. *NOTE: exclude values > 0 to recommend new actions only* "
+          }
+        }
+      },
+      "UserNextActionList": {
+        "title": "UserNextActionList",
+        "required": ["actions"],
+        "type": "object",
+        "properties": {
+          "actions": {
+            "title": "Actions",
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/UserNextAction" }
+          }
+        }
+      },
+      "UserRawHistoryAction": {
+        "title": "UserRawHistoryAction",
+        "required": ["timestamp", "event_type", "asset_id", "asset_name"],
+        "type": "object",
+        "properties": {
+          "timestamp": {
+            "title": "Timestamp",
+            "type": "string",
+            "description": "Time of event in ISO 8601 format",
+            "format": "date-time"
+          },
+          "event_type": {
+            "title": "Event Type",
+            "type": "string",
+            "description": "The behavior logged in the action"
+          },
+          "asset_id": { "title": "Asset Id", "type": "string" },
+          "asset_name": { "title": "Asset Name", "type": "string" },
+          "event_labels": {
+            "title": "Event Labels",
+            "type": "array",
+            "items": {}
+          },
+          "asset_labels": {
+            "title": "Asset Labels",
+            "type": "array",
+            "items": {}
+          }
+        }
+      },
+      "UserRawHistoryActionList": {
+        "title": "UserRawHistoryActionList",
+        "required": ["history"],
+        "type": "object",
+        "properties": {
+          "history": {
+            "title": "History",
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/UserRawHistoryAction" }
+          }
+        }
+      },
+      "ValidationError": {
+        "title": "ValidationError",
+        "required": ["loc", "msg", "type"],
+        "type": "object",
+        "properties": {
+          "loc": {
+            "title": "Location",
+            "type": "array",
+            "items": { "anyOf": [{ "type": "string" }, { "type": "integer" }] }
+          },
+          "msg": { "title": "Message", "type": "string" },
+          "type": { "title": "Error Type", "type": "string" }
+        }
+      }
+    },
+    "securitySchemes": {
+      "APIKeyHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "actionhub-key"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Program Configuration",
+      "description": "\nPrograms define the operating parameters for a given \nscope of user engagement. *_All events and actions (including labels \nand assets) and are handled within the context of a specific program._* \nPrograms are typically aligned to a set of use cases that share \nsimilar user context. Program configuration options include the dials\nand switches for optimizing ActionHub behavior to meet the needs of a given \nuse case.\n        "
+    },
+    {
+      "name": "Event Logging",
+      "description": "Operations with engagement events and the event stream."
+    },
+    {
+      "name": "User Engagement",
+      "description": "_Operations with users, their past, present, and future._\n            Users are not directly added to the system. They are identified by `user_id` \n            found in the event stream. \n        "
+    },
+    {
+      "name": "Segmentation",
+      "description": "Operations to manage and create segments."
+    },
+    {
+      "name": "Asset Administration",
+      "description": "Operations with the engagement assets (pages, products, etc.) that make up events."
+    },
+    {
+      "name": "Label Administration",
+      "description": "Operations to manage the weight of program labels."
+    },
+    {
+      "name": "System Administration",
+      "description": "\nFunctions to support the operating of the overall system including system-wide \nconfigurations. ADMIN role required.\n        "
+    }
+  ]
+}
